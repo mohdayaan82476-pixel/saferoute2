@@ -1,47 +1,48 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { Bell, ChevronDown, ChevronLeft, CircleHelp, Compass, Crosshair, Flag, GitBranch, Layers3, MapPin, Menu, Navigation, Search, Shield, Siren, Sparkles, Sun, Volume2, X, Zap } from 'lucide-react'
+import { MapCanvas } from '@/components/map-canvas'
+import { destinations, incident, reportTimeline, routeOptions, type RouteOption, type Screen } from '@/lib/mockData'
+
+type ChipProps = { children: React.ReactNode; tone?: 'green' | 'red' | 'amber' | 'blue' | 'neutral' }
+
+function Chip({ children, tone = 'neutral' }: ChipProps) {
+  return <span className={`chip chip-${tone}`}>{children}</span>
+}
+
+function BrandNav({ screen, onHome }: { screen: Screen; onHome: () => void }) {
+  return <header className="topbar">
+    <button className="brand" onClick={onHome} aria-label="SafeRoute home"><span className="brand-mark"><Shield size={15} fill="currentColor" /></span><span><strong>SafeRoute</strong><small>AI PILOT</small></span></button>
+    <nav className="main-nav" aria-label="Main navigation"><button className={screen === 'home' || screen === 'routes' || screen === 'live' || screen === 'incident' ? 'active' : ''} onClick={onHome}>Explorer</button><button onClick={onHome}>Routes</button><button onClick={onHome}>Safety Intel</button></nav>
+    <div className="top-status"><span className="status-dot" /> <span className="hide-sm">SAFETY MONITORING READY</span><span className="status-divider">•</span><span>8:42 PM</span><span className="hide-sm">• WELL LIT</span></div>
+    <button className="icon-button" aria-label="Notifications"><Bell size={16} /></button><button className="avatar" aria-label="Profile">JD</button>
+  </header>
+}
+
+function MapControls() { return <div className="map-controls"><button aria-label="Zoom in">+</button><button aria-label="Zoom out">−</button><button aria-label="Map layers"><Layers3 size={16} /></button><button aria-label="Compass"><Compass size={16} /></button><button aria-label="Locate me"><Crosshair size={16} /></button></div> }
+
+function MapShell({ children, incidentMode = false, reroute = false }: { children?: React.ReactNode; incidentMode?: boolean; reroute?: boolean }) {
+  return <section className="map-shell"><MapCanvas incident={incidentMode} reroute={reroute} /><div className="map-grid-overlay" aria-hidden="true" /><div className="map-label map-label-park">EMERALD PARK CANOPY</div><div className="map-label map-label-boulevard">MARKET BOULEVARD</div><div className="map-pill map-pill-left"><span className="status-dot" /> 98% LIT CORRIDOR</div><div className="map-pill map-pill-right"><Sun size={13} /> Well-Lit Only</div>{children}<MapControls /><div className="map-disclaimer">© 2024 SafeRoute AI Inc. · Map Data · Safety Guidelines</div></section>
+}
+
+function DestinationPanel({ onAnalyze }: { onAnalyze: () => void }) { return <aside className="panel destination-panel"><div className="search-box"><Search size={16} /><span>City Center Plaza</span><X size={15} /><span className="mic">◌</span></div><div className="filter-row"><Chip tone="green">☼ Well-Lit Only</Chip><Chip tone="green">♟ Active Crowds</Chip><Chip tone="red">⚒ Avoid Hazards</Chip></div><div className="eyebrow-row"><span>SUGGESTED &amp; RECENT</span><button>Clear</button></div><div className="dest-list">{destinations.map((d, i) => <button className={`dest-item ${i === 1 ? 'selected' : ''}`} key={d.name}><span className="dest-icon">{i === 0 ? '⌂' : i === 1 ? '▦' : '◇'}</span><span className="dest-copy"><strong>{d.name}</strong><small>{d.meta}</small></span><Chip tone="green">◉ {d.score}</Chip></button>)}</div><div className="destination-card"><div className="destination-heading"><div><h1>City Center Plaza</h1><p>★ 4.8 · <b>Open Public Space</b> · 1.2 mi away</p></div><button className="bookmark">♧</button></div><div className="safe-meter"><div><strong>◉ 96% Safe Route Available</strong><Chip tone="green">OPTIMAL</Chip></div><div className="meter"><span /></div></div><ul className="safety-list"><li>Well-lit roads along major commercial streets</li><li>High pedestrian and active storefront presence</li><li>Low recent incident activity in surrounding blocks</li></ul><div className="mode-row"><button>♟ Walk (18m)</button><button>♧ Bike (6m)</button><button>▣ Transit (11m)</button></div><div className="action-row"><button className="primary-action" onClick={onAnalyze}><Sparkles size={16} /> Analyze Safe Routes</button><button className="share-button" aria-label="Share destination">⌯</button></div></div></aside> }
+
+function RoutesPanel({ onStart, onBack }: { onStart: () => void; onBack: () => void }) { return <aside className="panel route-panel"><div className="panel-heading"><div><div className="eyebrow">SUGGESTED OPTIONS</div><h1>Select Route</h1></div><span>Destination<br /><b>1.2 km away</b></span></div><div className="filter-row"><Chip tone="green">● Prioritize Lighting</Chip><Chip>⌁ Avoid Alleys</Chip><Chip>♧ Active Traffic</Chip></div>{routeOptions.map((route, index) => <RouteCard key={route.id} route={route} recommended={index === 0} />)}<button className="primary-action full" onClick={onStart}><Navigation size={16} /> Start Journey (28 min)</button><button className="text-link"><CircleHelp size={13} /> Why this score? View safety signals breakdown</button><button className="back-link" onClick={onBack}><ChevronLeft size={14} /> Change destination</button></aside> }
+
+function RouteCard({ route, recommended }: { route: RouteOption; recommended?: boolean }) { return <button className={`route-card ${recommended ? 'recommended' : ''}`}><div className="route-card-top"><Chip tone={route.color === 'amber' ? 'amber' : 'green'}>{route.label}</Chip><span className="score">● {route.safety} <small>/ 100 · {route.safety > 85 ? 'Very Safe' : 'Safe'}</small></span></div><div className="route-time"><strong>{route.minutes} min</strong><span>{route.distance}</span>{recommended && <em>+9 min vs fastest</em>}</div><h3>{route.title}</h3><p>{route.description}</p><div className="route-detail"><span>◉ {route.safety > 85 ? 'Lit 100%' : 'Lower lighting'}</span><span>♟ High Density</span><span>♢ Clean Record</span></div></button> }
+
+function LivePanel({ onIncident, onEnd }: { onIncident: () => void; onEnd: () => void }) { return <aside className="panel live-panel"><div className="live-heading"><div className="eyebrow"><Navigation size={12} /> NAVIGATING TO</div><h1>City Center Plaza</h1><Chip tone="green">◉ Verified Safe Corridor</Chip></div><div className="stats-row"><div><small>Estimated Arrival</small><strong>8:42<sup> PM</sup></strong></div><div><small>Remaining</small><strong className="green-text">18<sup> min</sup></strong></div><div><small>Distance</small><strong>6.2<sup> km</sup></strong></div></div><div className="safe-note"><Shield size={15} /> Safety score stable at <b>89 / 100</b></div><div className="live-buttons"><button onClick={onEnd}><X size={14} /> End</button><button><span>⌾</span> Share</button><button><Volume2 size={14} /> Voice On</button><button className="green-button">▣ Havens</button></div><button className="incident-trigger" onClick={onIncident}><Siren size={15} /> Simulate incident ahead</button></aside> }
+
+function IncidentPanel({ onSwitch, onStay }: { onSwitch: () => void; onStay: () => void }) { return <><div className="incident-banner"><div className="incident-badge"><Siren size={16} /><span>HIGH-RISK<br />INCIDENT AHEAD</span></div><div><h2>High-risk incident detected</h2><p>This incident affects your planned route.</p></div><div className="risk-change"><span>89 → <b>51</b></span><small>CURRENT ROUTE<br />51 / 100 · High Risk</small></div></div><aside className="panel incident-panel"><div className="eyebrow">LIVE RE-ROUTE AVAILABLE <Chip tone="green">OPTIMIZED</Chip></div><h1>Autonomous Re-Route</h1><p className="muted">HIGH SAFETY DELTA <b>(+36 PTS)</b></p><div className="agent-list"><div>◉ <span>INCIDENT AGENT</span><b>High-severity incident detected</b></div><div>⌁ <span>SAFETY AGENT</span><b>Current route risk recalculated (51 / 100)</b></div><div>⌁ <span>REROUTE AGENT</span><b>Alternative routes analyzed</b></div><div>◇ <span>DECISION</span><b>Significant safer alternative found</b></div></div><div className="recommended-route"><div className="eyebrow">AI RECOMMENDED ROUTE · VIA 9TH AVE <Chip tone="green">87 / 100 · LOW RISK</Chip></div><h2>24 min <small>(+5 min)</small></h2><p>7.4 km · 100% LED Lighting · High Footfall · Safe Havens: 2</p><strong>Significant safety improvement (+36 pts) outweighs 5-minute detour.</strong></div><div className="action-stack"><button className="primary-action" onClick={onSwitch}><GitBranch size={15} /> Switch Route (24 min)</button><button className="secondary-action" onClick={onStay}>Stay on Route (19 min) <span>△</span></button></div><div className="telemetry"><span className="status-dot" /> Telemetry Feed Live <span>5G Mesh · 94% CCTV</span></div></aside></> }
+
+function ReportPanel({ onReset }: { onReset: () => void }) { return <div className="report-content"><div className="eyebrow"><Chip tone="green">◉ JOURNEY COMPLETE</Chip><span>Session ID: SR-94021-PILOT</span></div><h1>Your journey has ended safely.</h1><p className="report-sub">⌖ Arrived at <b>City Center Plaza</b> · 8:42 PM</p><div className="journey-pills"><Chip tone="green">● Started Safe (89)</Chip><span>→</span><Chip tone="red">● Risk Encountered (51)</Chip><span>→</span><Chip tone="green">● Recovered (87)</Chip></div><div className="score-grid"><div><small>STARTING SAFETY</small><strong>89 <sup>/ 100</sup></strong><span>◉ Very Safe</span></div><div><small>LOWEST SAFETY</small><strong className="red-text">51 <sup>/ 100</sup></strong><span className="red-text">✱ High Risk</span></div><div><small>FINAL SAFETY</small><strong>87 <sup>/ 100</sup></strong><span>◉ Low Risk</span></div></div><div className="improvement"><span className="improvement-icon">↗</span><div><strong>Safety improved after rerouting: 51 → 87 (+36 points)</strong><p>Your final route provided a significantly safer alternative with continuous lighting and active storefronts.</p></div><Chip tone="green">AUTONOMOUS GUARD</Chip></div><div className="report-stats"><div><small>JOURNEY TIME</small><strong>24 min</strong><span>+1 min detour</span></div><div><small>DISTANCE</small><strong>7.9 km</strong><span>Urban transit</span></div><div><small>INCIDENTS MANAGED</small><strong>1</strong><span>Isolated Plaza Way</span></div><div><small>REROUTES EXECUTED</small><strong>1</strong><span>via 9th Ave</span></div></div><div className="audit"><div className="audit-title"><h2>♙ AI Actions &amp; Decision Record</h2><span>Telemetry Feed &nbsp; <b>Route Audit Map</b> &nbsp; <i>● Safe Corridor Logged</i></span></div><div className="audit-grid"><div className="timeline">{reportTimeline.map((item) => <div className="timeline-item" key={item.title}><span className={`timeline-icon ${item.tone}`}>◉</span><div><small>{item.time}</small><strong>{item.title}</strong><p>{item.detail}</p></div></div>)}</div><div className="mini-audit-map"><span>City Center Plaza</span><span className="mini-red">Plaza Way</span><div className="mini-line green-line" /><div className="mini-line red-line" /></div></div></div><button className="primary-action report-reset" onClick={onReset}><Compass size={16} /> Plan another safe journey</button></div> }
+
 export default function Page() {
-  return (
-    <main
-      style={{
-        colorScheme: 'light dark',
-        position: 'relative',
-        display: 'flex',
-        minHeight: '100vh',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: 'light-dark(#fff, #000)',
-        color: 'light-dark(#000, #fff)',
-      }}
-    >
-      <svg
-        aria-hidden="true"
-        style={{ width: 80, height: 80 }}
-        width={80}
-        height={80}
-        fill="none"
-        viewBox="0 0 20 20"
-        xmlns="http://www.w3.org/2000/svg"
-        stroke="currentColor"
-        strokeWidth="0.5"
-      >
-        <path
-          d="M14.2 14.2H17V6.9375C17 4.76288 15.2371 3 13.0625 3H5.8V5.8M14.2 14.2V7.79063L7.79062 14.2H14.2ZM14.2 14.2V17H6.9375C4.76288 17 3 15.2371 3 13.0625V5.8H5.8M5.8 5.8V12.2313L12.2313 5.8H5.8Z"
-          strokeLinejoin="round"
-        />
-      </svg>
-      <p
-        style={{
-          position: 'absolute',
-          left: '50%',
-          top: 'calc(50% + 56px)',
-          transform: 'translateX(-50%)',
-          whiteSpace: 'nowrap',
-          fontSize: '14px',
-          fontWeight: 500,
-          color: 'light-dark(#71717a, #a1a1aa)',
-        }}
-      >
-        Your v0 generation will show here.
-      </p>
-    </main>
-  )
+  const [screen, setScreen] = useState<Screen>('home')
+  const [rerouted, setRerouted] = useState(false)
+  const [time, setTime] = useState(0)
+  useEffect(() => { if (screen !== 'incident') return; const id = window.setInterval(() => setTime((value) => (value + 1) % 4), 700); return () => window.clearInterval(id) }, [screen])
+  const reset = () => { setScreen('home'); setRerouted(false); setTime(0) }
+  return <main className="app-shell"><BrandNav screen={screen} onHome={reset} />{screen === 'report' ? <section className="report-shell"><ReportPanel onReset={reset} /></section> : <MapShell incidentMode={screen === 'incident' || screen === 'live'} reroute={rerouted}>{screen === 'home' && <DestinationPanel onAnalyze={() => setScreen('routes')} />}{screen === 'routes' && <RoutesPanel onStart={() => setScreen('live')} onBack={reset} />}{screen === 'live' && <LivePanel onIncident={() => setScreen('incident')} onEnd={() => setScreen('report')} />}{screen === 'incident' && <IncidentPanel onSwitch={() => { setRerouted(true); setScreen('live') }} onStay={() => setScreen('report')} />}{screen === 'incident' && <div className="incident-location"><MapPin size={15} fill="currentColor" /> INCIDENT CORRIDOR 1.8KM AHEAD</div>}</MapShell>}<div className="mobile-menu"><Menu size={18} /> <span>SafeRoute AI Pilot</span></div></main>
 }
