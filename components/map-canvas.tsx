@@ -32,6 +32,7 @@ export function MapCanvas({ incident = false, reroute = false }: { incident?: bo
     })
     map.addControl(new NavigationControl({ showCompass: false }), 'bottom-right')
     map.on('load', () => {
+      map.resize()
       map.addSource('saferoute', { type: 'geojson', data: routeGeoJSON })
       map.addLayer({ id: 'saferoute-halo', type: 'line', source: 'saferoute', paint: { 'line-color': '#9bd3a8', 'line-width': 9, 'line-opacity': 0.38 } })
       map.addLayer({ id: 'saferoute-line', type: 'line', source: 'saferoute', paint: { 'line-color': reroute ? '#0f704b' : '#087f50', 'line-width': 4, 'line-dasharray': incident && !reroute ? [1, 1.4] : [1, 0] } })
@@ -39,7 +40,9 @@ export function MapCanvas({ incident = false, reroute = false }: { incident?: bo
       map.addLayer({ id: 'incident-point', type: 'circle', source: 'incident', paint: { 'circle-radius': incident ? 11 : 0, 'circle-color': '#d24520', 'circle-stroke-color': '#fff1db', 'circle-stroke-width': 3 } })
     })
     mapRef.current = map
-    return () => { map.remove(); mapRef.current = null }
+    const observer = new ResizeObserver(() => map.resize())
+    observer.observe(nodeRef.current)
+    return () => { observer.disconnect(); map.remove(); mapRef.current = null }
   }, [incident, reroute])
 
   return <div ref={nodeRef} className="map-canvas" aria-label="SafeRoute map showing streets, safe corridor, and incident overlay" />
