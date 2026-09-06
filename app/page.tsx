@@ -38,11 +38,57 @@ function IncidentPanel({ onSwitch, onStay }: { onSwitch: () => void; onStay: () 
 
 function ReportPanel({ onReset }: { onReset: () => void }) { return <div className="report-content"><div className="eyebrow"><Chip tone="green">◉ JOURNEY COMPLETE</Chip><span>Session ID: SR-94021-PILOT</span></div><h1>Your journey has ended safely.</h1><p className="report-sub">⌖ Arrived at <b>City Center Plaza</b> · 8:42 PM</p><div className="journey-pills"><Chip tone="green">● Started Safe (89)</Chip><span>→</span><Chip tone="red">● Risk Encountered (51)</Chip><span>→</span><Chip tone="green">● Recovered (87)</Chip></div><div className="score-grid"><div><small>STARTING SAFETY</small><strong>89 <sup>/ 100</sup></strong><span>◉ Very Safe</span></div><div><small>LOWEST SAFETY</small><strong className="red-text">51 <sup>/ 100</sup></strong><span className="red-text">✱ High Risk</span></div><div><small>FINAL SAFETY</small><strong>87 <sup>/ 100</sup></strong><span>◉ Low Risk</span></div></div><div className="improvement"><span className="improvement-icon">↗</span><div><strong>Safety improved after rerouting: 51 → 87 (+36 points)</strong><p>Your final route provided a significantly safer alternative with continuous lighting and active storefronts.</p></div><Chip tone="green">AUTONOMOUS GUARD</Chip></div><div className="report-stats"><div><small>JOURNEY TIME</small><strong>24 min</strong><span>+1 min detour</span></div><div><small>DISTANCE</small><strong>7.9 km</strong><span>Urban transit</span></div><div><small>INCIDENTS MANAGED</small><strong>1</strong><span>Isolated Plaza Way</span></div><div><small>REROUTES EXECUTED</small><strong>1</strong><span>via 9th Ave</span></div></div><div className="audit"><div className="audit-title"><h2>♙ AI Actions &amp; Decision Record</h2><span>Telemetry Feed &nbsp; <b>Route Audit Map</b> &nbsp; <i>● Safe Corridor Logged</i></span></div><div className="audit-grid"><div className="timeline">{reportTimeline.map((item) => <div className="timeline-item" key={item.title}><span className={`timeline-icon ${item.tone}`}>◉</span><div><small>{item.time}</small><strong>{item.title}</strong><p>{item.detail}</p></div></div>)}</div><div className="mini-audit-map"><span>City Center Plaza</span><span className="mini-red">Plaza Way</span><div className="mini-line green-line" /><div className="mini-line red-line" /></div></div></div><button className="primary-action report-reset" onClick={onReset}><Compass size={16} /> Plan another safe journey</button></div> }
 
+// ---------------------------------------------------------------------------
+// DEV SCREEN JUMP — review helper only. Remove before final submission.
+// Toggle the flag below (or delete this block + <DevScreenMenu /> usage).
+// Maps ?screen=home|routes|journey|incident|report to app screens.
+// ---------------------------------------------------------------------------
+const DEV_SCREEN_JUMP = true
+
+const DEV_SCREEN_MAP: Record<string, Screen> = { home: 'home', routes: 'routes', journey: 'live', live: 'live', incident: 'incident', report: 'report' }
+const DEV_SCREEN_ITEMS: { param: string; label: string }[] = [
+  { param: 'home', label: 'Home' },
+  { param: 'routes', label: 'Routes' },
+  { param: 'journey', label: 'Journey' },
+  { param: 'incident', label: 'Incident' },
+  { param: 'report', label: 'Report' },
+]
+
+function DevScreenMenu({ onJump }: { onJump: (screen: Screen, rerouted: boolean) => void }) {
+  const [current, setCurrent] = useState('home')
+  const handleChange = (param: string) => {
+    setCurrent(param)
+    const target = DEV_SCREEN_MAP[param] ?? 'home'
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href)
+      url.searchParams.set('screen', param)
+      window.history.replaceState(null, '', url.toString())
+    }
+    onJump(target, param === 'report')
+  }
+  return <div className="dev-screen-menu" role="region" aria-label="Developer screen jump (remove before submission)">
+    <span className="dev-screen-tag">DEV</span>
+    <label className="sr-only" htmlFor="dev-screen-select">Jump to screen</label>
+    <select id="dev-screen-select" value={current} onChange={(event) => handleChange(event.target.value)}>
+      {DEV_SCREEN_ITEMS.map((item) => <option key={item.param} value={item.param}>{item.label}</option>)}
+    </select>
+  </div>
+}
+// --------------------------------------------------------------------------- END DEV SCREEN JUMP
+
 export default function Page() {
   const [screen, setScreen] = useState<Screen>('home')
   const [rerouted, setRerouted] = useState(false)
   const [time, setTime] = useState(0)
   useEffect(() => { if (screen !== 'incident') return; const id = window.setInterval(() => setTime((value) => (value + 1) % 4), 700); return () => window.clearInterval(id) }, [screen])
+  // DEV SCREEN JUMP: apply ?screen= on load. Remove with the dev block above.
+  useEffect(() => {
+    if (!DEV_SCREEN_JUMP || typeof window === 'undefined') return
+    const param = new URLSearchParams(window.location.search).get('screen')
+    if (!param) return
+    const target = DEV_SCREEN_MAP[param]
+    if (target) { setScreen(target); setRerouted(param === 'report') }
+  }, [])
   const reset = () => { setScreen('home'); setRerouted(false); setTime(0) }
-  return <main className="app-shell"><BrandNav screen={screen} onHome={reset} />{screen === 'report' ? <section className="report-shell"><ReportPanel onReset={reset} /></section> : <MapShell incidentMode={screen === 'incident' || screen === 'live'} reroute={rerouted}>{screen === 'home' && <DestinationPanel onAnalyze={() => setScreen('routes')} />}{screen === 'routes' && <RoutesPanel onStart={() => setScreen('live')} onBack={reset} />}{screen === 'live' && <LivePanel onIncident={() => setScreen('incident')} onEnd={() => setScreen('report')} />}{screen === 'incident' && <IncidentPanel onSwitch={() => { setRerouted(true); setScreen('live') }} onStay={() => setScreen('report')} />}{screen === 'incident' && <div className="incident-location"><MapPin size={15} fill="currentColor" /> INCIDENT CORRIDOR 1.8KM AHEAD</div>}</MapShell>}<div className="mobile-menu"><Menu size={18} /> <span>SafeRoute AI Pilot</span></div></main>
+  return <main className="app-shell"><BrandNav screen={screen} onHome={reset} />{screen === 'report' ? <section className="report-shell"><ReportPanel onReset={reset} /></section> : <MapShell incidentMode={screen === 'incident' || screen === 'live'} reroute={rerouted}>{screen === 'home' && <DestinationPanel onAnalyze={() => setScreen('routes')} />}{screen === 'routes' && <RoutesPanel onStart={() => setScreen('live')} onBack={reset} />}{screen === 'live' && <LivePanel onIncident={() => setScreen('incident')} onEnd={() => setScreen('report')} />}{screen === 'incident' && <IncidentPanel onSwitch={() => { setRerouted(true); setScreen('live') }} onStay={() => setScreen('report')} />}{screen === 'incident' && <div className="incident-location"><MapPin size={15} fill="currentColor" /> INCIDENT CORRIDOR 1.8KM AHEAD</div>}</MapShell>}<div className="mobile-menu"><Menu size={18} /> <span>SafeRoute AI Pilot</span></div>{DEV_SCREEN_JUMP && <DevScreenMenu onJump={(target, reroutedValue) => { setScreen(target); setRerouted(reroutedValue) }} />}</main>
 }
